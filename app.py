@@ -192,7 +192,7 @@ def build_databases():
 # Plotting Intermediate
 
 def plot_waveform(y, sr):
-    fig, ax = plt.subplots(figsize=(6, 2.6))
+    fig, ax = plt.subplots(figsize=(6,2.6))
     librosa.display.waveshow(y, sr=sr, ax=ax)
     ax.set_title("Waveform")
     ax.set_xlabel("Time (s)")
@@ -318,10 +318,8 @@ with st.sidebar:
 
     st.divider()
     st.caption(
-        "Note: pairing two peaks into one hash (Δfreq, Δtime) makes a true "
-        "match line up at one offset very strongly, while single-peak "
-        "hashes are far more common across songs and give noisier, less "
-        "decisive matches."
+        "For plotting differnt kinds of plot only the first 20s of  "
+        "signal is used. "
     )
 
 
@@ -375,6 +373,20 @@ if mode == "Single Clip":
                 database = db_pairs
 
             best_song, best_score = predict_song(query_hashes, database)
+
+            MAX_PLOT_SEC = 20
+            
+            max_samples = int(MAX_PLOT_SEC * sr)
+            y = y[:max_samples]
+        
+            max_frames = int((MAX_PLOT_SEC * sr) / HOP)
+            S_db = S_db[:, :max_frames]
+            
+            valid_peaks_mask = peak_times <= MAX_PLOT_SEC
+            peak_times = peak_times[valid_peaks_mask]
+            peak_freqs = peak_freqs[valid_peaks_mask]
+            
+            gc.collect()
 
             st.markdown("### Result")
             if best_song != "No Match Found":
