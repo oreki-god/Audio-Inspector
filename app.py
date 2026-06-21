@@ -6,6 +6,7 @@ import io
 import os
 import glob
 import pickle
+import gc
 import gzip
 import tempfile
 from collections import defaultdict, Counter
@@ -220,7 +221,7 @@ def plot_dft_magnitude(y, sr):
     return fig
 
 
-def plot_spectrogram_with_window(y, sr, window):
+def plot_spectrogram_with_window(y,sr, window):
     hop = window // 2
     D = librosa.stft(y, n_fft=window, hop_length=hop)
     S_db = librosa.amplitude_to_db(np.abs(D), ref=np.max)
@@ -388,11 +389,15 @@ if mode == "Single Clip":
             )
 
             with tab_wave:
-                st.pyplot(plot_waveform(y, sr), use_container_width=True)
+                fig = plot_waveform(y, sr)
+                st.pyplot(fig, use_container_width=True)
+                plt.close(fig)
                 st.caption("The raw time-domain signal that was fingerprinted (after any noise/stretch applied above).")
 
             with tab_dft:
-                st.pyplot(plot_dft_magnitude(y, sr), use_container_width=True)
+                fig = plot_dft_magnitude(y, sr)
+                st.pyplot(fig, use_container_width=True)
+                plt.close(fig)
                 st.caption(
                     "A single DFT over the whole clip shows *which* frequencies are present, "
                     "but all timing information is gone — this is exactly why we need a "
@@ -400,17 +405,25 @@ if mode == "Single Clip":
                 )
 
             with tab_spec:
-                st.pyplot(plot_spectrogram(S_db, sr, HOP), use_container_width=True)
+                fig = plot_spectrogram(S_db, sr, HOP)
+                st.pyplot(fig, use_container_width=True)
+                plt.close(fig)
                 st.caption("STFT magnitude (dB) over time — frequency content as it evolves through the clip.")
 
             with tab_const:
-                st.pyplot(plot_constellation(S_db, sr, HOP, peak_times, peak_freqs), use_container_width=True)
+                fig = plot_constellation(S_db, sr, HOP, peak_times, peak_freqs)
+                st.pyplot(fig, use_container_width=True)
+                plt.close(fig)
                 st.caption("Only the strongest, locally-maximal time-frequency points are kept as the clip's fingerprint.")
 
             with tab_hist:
                 if best_song != "No Match Found":
                     hist = offset_histogram(query_hashes, database, best_song)
-                    st.pyplot(plot_offset_histogram(hist, best_song), use_container_width=True)
+
+                    fig = plot_offset_histogram(hist, best_song)
+                    st.pyplot(fig, use_container_width=True)
+                    plt.close(fig)
+                    
                     st.caption(
                         "A sharp, tall peak at one offset means the query's hashes line up "
                         "consistently with the matched song; a flat, scattered histogram "
@@ -422,11 +435,17 @@ if mode == "Single Clip":
             with st.expander("Bonus: short window vs. long window (time–frequency resolution trade-off)"):
                 wc1, wc2 = st.columns(2)
                 with wc1:
-                    st.pyplot(plot_spectrogram_with_window(y, sr, 1024), use_container_width=True)
+                    fig = plot_spectrogram_with_window(y, sr, 1024)
+                    st.pyplot(fig, use_container_width=True)
+                    plt.close(fig)
                     st.caption("Short window → blurry frequency).")
                 with wc2:
-                    st.pyplot(plot_spectrogram_with_window(y, sr, 16384), use_container_width=True)
+                    fig = plot_spectrogram_with_window(y, sr, 16384)
+                    st.pyplot(fig, use_container_width=True)
+                    plt.close(fig)
                     st.caption("Long window → precise frequency, blurry timing.")
+                    del y
+                    gc.collect()
 
 
 # ------------------------------- Batch mode -------------------------------
@@ -478,6 +497,8 @@ else:
                 y = apply_time_stretch(y, stretch_rate_b)
 
             _, _, _, peak_times, peak_freqs = extract_peaks(y, sr)
+            del y
+            gc.collect()
             query_hashes = hash_generator(peak_times, peak_freqs)
             best_song, _ = predict_song(query_hashes, db_pairs)
             prediction = best_song if best_song != "No Match Found" else ""
