@@ -203,8 +203,6 @@ def plot_waveform(y, sr):
 
 
 def plot_dft_magnitude(y, sr):
-    """Full-clip DFT magnitude — shows WHICH frequencies are present but
-    not WHEN, motivating the move to a spectrogram."""
     fft_result = np.fft.fft(y)
     magnitude = np.abs(fft_result)
     n = len(y)
@@ -282,7 +280,6 @@ def plot_offset_histogram(hist, song_name):
 
 
 def load_uploaded_audio(uploaded_file):
-    """Writes an uploaded Streamlit file to a temp path and loads it with librosa."""
     suffix = os.path.splitext(uploaded_file.name)[1] or ".wav"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(uploaded_file.getbuffer())
@@ -295,7 +292,7 @@ def load_uploaded_audio(uploaded_file):
 
 # App layout
 
-st.title("🎵 Sonic Signatures — Audio Fingerprint Identifier")
+st.title("🎵 Audio Inspector — Audio Fingerprint Identifier")
 
 db_pairs, db_single, song_list = build_databases()
 
